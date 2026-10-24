@@ -1,0 +1,36 @@
+# Maven and Java build output
+target/
+*.class
+*.jar
+
+# IDE files
+.idea/
+.vscode/
+*.iml
+
+# macOS files
+.DS_Store
+
+# Logs
+*.log
+
+# Local environment and secrets
+.env
+.env.*
+
+# Temporary files
+*.tmp
+*.swp
+
+# CodeCrafters-specific files
+.codecrafters/
+codecrafters.yml
+
+# Deployment configurations not used by this project
+azure-pipelines.yml
+dind/
+kind/
+redis-chart/
+
+# PowerShell test script (if not intended for publication)
+ping.ps1
