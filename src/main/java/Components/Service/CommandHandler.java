@@ -45,7 +45,10 @@ public class CommandHandler {
             String key = command[1];
             String value = command[2];
 
-            int pxFlag = Arrays.stream(command).toList().indexOf("px");
+                        int pxFlag = -1;
+            for (int i = 3; i < command.length; i++) {
+                if (command[i].equalsIgnoreCase("px")) { pxFlag = i; break; }
+            }
             // -1
             if(pxFlag > -1){
                 int delta = Integer.parseInt( command[ pxFlag + 1 ] );

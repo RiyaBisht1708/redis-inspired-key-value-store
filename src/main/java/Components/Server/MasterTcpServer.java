@@ -42,6 +42,8 @@ public class MasterTcpServer {
     private ConnectionPool connectionPool;
     @Autowired
     private Store store;
+    private final java.util.concurrent.ExecutorService clientExecutor =
+        java.util.concurrent.Executors.newVirtualThreadPerTaskExecutor();
     public void startServer(){
         ServerSocket serverSocket = null;
         Socket clientSocket = null;
@@ -59,7 +61,7 @@ public class MasterTcpServer {
                 OutputStream outputStream = clientSocket.getOutputStream();
 
                 Client client = new Client(finalClientSocket, inputStream, outputStream, id );
-                CompletableFuture.runAsync(() -> {
+                clientExecutor.execute(() -> {
                     try {
                         handleClient(client);
                     } catch (IOException e) {
@@ -140,6 +142,7 @@ private void handleClient(Client client) throws IOException {
 
 
     private void handleCommand(String[] command, Client client) throws IOException {
+        command[0] = command[0].toUpperCase();
         if(!client.getTransactionalContext()){
             ResponseDto responseDto = caseHandler(command, client);
             client.send(responseDto);
@@ -258,6 +261,8 @@ private void handleClient(Client client) throws IOException {
                 ResponseDto resDto = commandHandler.psync(command);
                 res = resDto.response;
                 data = resDto.data;
+                 default:
+                res = "-ERR unknown command '" + command[0] + "'\r\n";
                 break;
         }
         return new ResponseDto(res, data);
