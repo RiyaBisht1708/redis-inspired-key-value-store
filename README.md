@@ -1,93 +1,42 @@
-# Redis-Inspired Key-Value Store in Java
+# Redis-Inspired Key-Value Store (Java)
 
-## Overview
-
-A Java implementation of a Redis-inspired in-memory key-value store. This project explores how a TCP server receives client commands, processes them, stores values, and sends responses using the Redis Serialization Protocol (RESP).
-
-The project builds on a CodeCrafters Redis challenge repository, with additional implementation, debugging, and testing performed during development.
+A Redis-compatible in-memory server written in Java. It speaks RESP over TCP, so
+standard tools like `redis-cli` and `redis-benchmark` work against it. Built from the
+CodeCrafters "Build your own Redis" challenge, then extended with my own debugging,
+tests, and fixes.
 
 ## Features
+- Commands: PING, ECHO, SET (with PX expiry), GET, DEL, INCR, INFO
+- Transactions: MULTI / EXEC / DISCARD
+- Replication: master and replica modes (`--replicaof`), REPLCONF, PSYNC, WAIT
+- RESP parser that handles commands split across TCP reads and counts Unicode by bytes
+- Thread-safe store (ConcurrentHashMap + read-write lock); one virtual thread per client
 
-The following commands have been manually tested:
+## Run
+Requires JDK 24+ and Maven.
 
-- **PING** — responds with a PONG message.
-- **SET** — stores a key-value pair.
-- **GET** — retrieves a stored value.
-- **DEL** — deletes keys and returns the number of keys deleted.
+    ./your_program.sh --port 6380
+    redis-cli -p 6380 SET a 1 PX 2000
+    redis-cli -p 6380 GET a
 
-The server also handles commands split across multiple TCP reads, as verified during development.
+## Test
+    mvn clean test
 
-## Tech Stack
+## Benchmark
+`redis-benchmark -p 6380 -t set,get -n 100000 -c 50 -q`
+on a MacBook Air, localhost, 50 clients:
 
-- Java
-- Maven
-- TCP sockets
-- Redis Serialization Protocol (RESP)
-- JUnit and configured testing dependencies
+| Command | Requests/s | p50 latency |
+|---|---|---|
+| SET | ~130K | 0.2 ms |
+| GET | ~165K | 0.17 ms |
 
-## Getting Started
+## Bugs found and fixed
+- Shared thread pool starved clients: 20 idle connections blocked new ones. Fixed with
+  virtual threads.
+- PX expiry was case-sensitive, so `PX` from redis-cli was ignored. Fixed.
+- Unknown commands returned no reply, which hung clients. They now return an error.
 
-### Prerequisites
-
-- A compatible Java Development Kit
-- Maven
-
-### Run the server
-
-Clone the repository and navigate to the project directory:
-
-```bash
-git clone <your-repository-url>
-cd <your-repository-directory>
-```
-
-Start the server:
-
-```bash
-./your_program.sh
-```
-
-The server uses port `6379` by default. Make sure the port is available.
-
-### Run tests
-
-```bash
-mvn clean test
-```
-
-## Example
-
-With the server running, connect using a TCP client such as `nc`:
-
-```bash
-nc localhost 6379
-```
-
-Send RESP-formatted commands. For example, the following request represents `PING`:
-
-```text
-*1
-$4
-PING
-```
-
-The expected response is:
-
-```text
-+PONG
-```
-
-Other manually tested commands include `SET`, `GET`, and `DEL`.
-
-## What I Learned
-
-- Handling TCP client connections in Java.
-- Understanding RESP request and response formatting.
-- Implementing in-memory key-value storage operations.
-- Debugging command parsing and server lifecycle issues.
-- Testing server behavior with command-line TCP clients.
-- Handling incomplete commands received across multiple TCP reads.
-
-## Acknowledgements
-
-This project builds on the CodeCrafters Redis challenge repository. Please refer to the original repository and its applicable license for attribution and usage terms.
+## Known limitations
+- INCR is not yet atomic under concurrent clients.
+- Persistence is not implemented.
